@@ -1,13 +1,28 @@
 <script lang="ts">
   import { runAgent, runAgentStream } from '$lib/agent/agent';
   import { marked } from 'marked';
-  import { ToolbarButton, Toolbar } from 'flowbite-svelte';
+  import { ToolbarButton, Toolbar, Button, Modal, modal } from 'flowbite-svelte';
   import { CogOutline } from 'flowbite-svelte-icons';
+  import { AppConfig } from '$lib/config';
+  import type { Action } from 'svelte/action';
+  import { Logger } from '$lib/logger';
 
-  let input = '';
-  let messages: { role: 'user' | 'assistant'; content: string }[] = [];
-  let loading = false;
-  let streamingContent = '';
+  let logger = Logger.getLogger('App');
+
+  let input = $state('');
+  let messages = $state<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  let loading = $state(false);
+  let streamingContent = $state('');
+
+  // controls visiblity of the config modal
+  let showConfigModal = $state(false);
+  let modalContent: string | null = $state(null);
+
+  $effect(() => {
+    if (showConfigModal) {
+      loadModalcontent();
+    }
+  });
 
   async function sendMessage() {
     if (input.trim() === '') return;
@@ -28,7 +43,7 @@
   }
 
   // Svelte action for markdown rendering
-  export function markdown(node: HTMLElement, content: string) {
+  export const markdown: Action<HTMLElement, string> = (node, content) => {
     node.innerHTML = marked.parse(content);
     return {
       update(newContent: string) {
@@ -36,21 +51,28 @@
       }
     };
   }
+
+  async function loadModalcontent() {
+    modalContent = null;
+    let config = await AppConfig.getInstance().getAll();
+    modalContent = JSON.stringify(config, null, 2);
+    logger.debug(modalContent);
+  }
 </script>
 
 <div class="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 flex items-center justify-center">
   <div class="w-full h-screen max-w-7xl bg-white rounded-b-2xl shadow-2xl flex flex-col">
     <header class="px-0 py-0 border-b flex items-center justify-between">
-      <Toolbar class="w-full rounded-none border-none shadow-none bg-transparent">
-        <div class="flex-1 pl-6">
-          <h1 class="text-2xl font-bold text-blue-600 tracking-tight">AI Desktop Chat</h1>
-        </div>
-        <div class="flex items-center pr-6">
-          <ToolbarButton>
+      <div class="flex-1 pl-6">
+        <h1 class="text-2xl font-bold text-blue-600 tracking-tight">AI Desktop Chat</h1>
+      </div>
+      <div class="flex items-center pr-6">
+        <Toolbar class="w-full rounded-none border-none shadow-none bg-transparent">
+          <ToolbarButton onclick={() => (showConfigModal = true)}>
             <CogOutline class="w-6 h-6 text-gray-500" />
           </ToolbarButton>
-        </div>
-      </Toolbar>
+        </Toolbar>
+      </div>    
     </header>
     <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-white">
       {#if messages.length === 0}
@@ -94,7 +116,7 @@
     </div>
     <form
       class="px-6 py-4 border-t flex gap-2 bg-white"
-      on:submit|preventDefault={sendMessage}
+      onsubmit={event => { event.preventDefault(); sendMessage(); }}
     >
       <input
         class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-base bg-gray-50"
@@ -108,3 +130,9 @@
     </form>
   </div>
 </div>
+
+<Modal title="Configuration data" size="l" bind:open={showConfigModal} autoclose on:close={() => (showConfigModal = false)}>
+  <pre class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
+    {modalContent}
+  </pre>
+</Modal>
