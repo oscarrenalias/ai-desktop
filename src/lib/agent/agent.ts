@@ -1,10 +1,8 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage } from '@langchain/core/messages';
-import { createReactAgent } from "@langchain/langgraph/prebuilt"
-import { tool } from "@langchain/core/tools"
-import { AppConfig } from "$lib/config"; 
-import { Logger } from "$lib/logger"
-
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { tool } from "@langchain/core/tools";
+import { AppConfig } from "$lib/config";
+import { Logger } from "$lib/logger";
 import { z } from "zod";
 
 let logger = Logger.getLogger("agent");
@@ -25,7 +23,6 @@ const search = tool(async ({ query }) => {
 
 let appConfig = AppConfig.getInstance();
 
-// Encapsulated agent state
 class AgentState {
   private messages: { role: string; content: string }[] = [];
 
@@ -40,15 +37,22 @@ class AgentState {
 
 const agentState = new AgentState();
 
-async function getAgent() {
+async function getAgent(onToken?: (token: string) => void) {
   const apiKeyRaw = await appConfig.get("OPENAI_API_KEY");
   const apiKey = typeof apiKeyRaw === 'string' ? apiKeyRaw : undefined;
 
   const model = new ChatOpenAI({
     temperature: 0.7,
     modelName: 'gpt-4',
-    streaming: false,
+    streaming: true,
     apiKey: apiKey,
+    callbacks: onToken
+      ? [{
+          handleLLMNewToken(token: string) {
+            onToken(token);
+          }
+        }]
+      : [],
   });
   return createReactAgent({
     llm: model,
@@ -66,6 +70,24 @@ export async function runAgent(input: string): Promise<string> {
     messages: agentState.getMessages()
   });
 
+  // Extract the assistant's reply from the result object
+  const lastMessage = result.messages[result.messages.length - 1];
+  const reply = typeof lastMessage.content === "string" ? lastMessage.content : JSON.stringify(lastMessage.content);
+  agentState.addMessage({ role: 'assistant', content: reply });
+  logger.info(`Agent result: ${JSON.stringify(result)}`);
+  return reply;
+}
+
+export async function runAgentStream(input: string, onStream: (token: string) => void): Promise<string> {
+  agentState.addMessage({ role: 'user', content: input });
+  let streamed = "";
+  const agent = await getAgent((token) => {
+    streamed += token;
+    onStream(streamed);
+  });
+  const result = await agent.invoke({
+    messages: agentState.getMessages()
+  });
   // Extract the assistant's reply from the result object
   const lastMessage = result.messages[result.messages.length - 1];
   const reply = typeof lastMessage.content === "string" ? lastMessage.content : JSON.stringify(lastMessage.content);
