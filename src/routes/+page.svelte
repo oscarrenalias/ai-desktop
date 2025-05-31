@@ -1,17 +1,33 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { runAgent } from '$lib/agent/agent';
   import { marked } from 'marked';
 
   let input = '';
   let messages: { role: 'user' | 'assistant'; content: string }[] = [];
+  let loading = false;
 
   async function sendMessage() {
     if (input.trim() === '') return;
+    // Add user message immediately
     messages = [...messages, { role: 'user', content: input }];
-    const response = await runAgent(input);
-    messages = [...messages, { role: 'assistant', content: response }];
+    const userInput = input;
     input = '';
+    loading = true;
+    // Asynchronously get agent response
+    runAgent(userInput).then(response => {
+      messages = [...messages, { role: 'assistant', content: response }];
+      loading = false;
+    });
+  }
+
+  // Svelte action for markdown rendering
+  export function markdown(node: HTMLElement, content: string) {
+    node.innerHTML = marked.parse(content);
+    return {
+      update(newContent: string) {
+        node.innerHTML = marked.parse(newContent);
+      }
+    };
   }
 </script>
 
@@ -28,13 +44,31 @@
         </div>
       {/if}
       {#each messages as message}
-        <div class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
-          <div class="max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-base whitespace-pre-line
-            {message.role === 'user' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'}">
-            <div class="prose prose-sm prose-blue break-words" innerHTML={marked.parse(message.content)}></div>
+        {#if message.role === 'user'}
+          <div class="flex justify-end">
+            <div class="max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-base whitespace-pre-line bg-blue-500 text-white rounded-br-none">
+              {message.content}
+            </div>
+          </div>
+        {:else}
+          <div class="flex justify-start">
+            <div class="max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-base bg-yellow-50 text-gray-900 border-l-4 border-yellow-400">
+              <div class="prose prose-sm prose-blue break-words" use:markdown={message.content}></div>
+            </div>
+          </div>
+        {/if}
+      {/each}
+      {#if loading}
+        <div class="flex justify-start">
+          <div class="max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-base bg-yellow-50 text-gray-400 border-l-4 border-yellow-200 italic flex items-center gap-2">
+            <svg class="animate-spin h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span>Thinking…</span>
           </div>
         </div>
-      {/each}
+      {/if}
     </div>
     <form
       class="px-6 py-4 border-t flex gap-2 bg-white"
@@ -46,7 +80,7 @@
         placeholder="Type your message..."
         autocomplete="off"
       />
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full font-semibold transition" type="submit">
+      <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full font-semibold transition" type="submit" disabled={loading}>
         Send
       </button>
     </form>

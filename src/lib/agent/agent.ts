@@ -3,8 +3,11 @@ import { HumanMessage } from '@langchain/core/messages';
 import { createReactAgent } from "@langchain/langgraph/prebuilt"
 import { tool } from "@langchain/core/tools"
 import { AppConfig } from "$lib/config"; 
+import { Logger } from "$lib/logger"
 
 import { z } from "zod";
+
+let logger = Logger.getLogger("agent");
 
 // test tool that simulates a web search
 const search = tool(async ({ query }) => {
@@ -22,11 +25,24 @@ const search = tool(async ({ query }) => {
 
 let appConfig = AppConfig.getInstance();
 
+// Encapsulated agent state
+class AgentState {
+  private messages: { role: string; content: string }[] = [];
+
+  addMessage(message: { role: string; content: string }) {
+    this.messages.push(message);
+  }
+
+  getMessages() {
+    return this.messages;
+  }
+}
+
+const agentState = new AgentState();
+
 async function getAgent() {
   const apiKeyRaw = await appConfig.get("OPENAI_API_KEY");
   const apiKey = typeof apiKeyRaw === 'string' ? apiKeyRaw : undefined;
-
-  console.log("Using OpenAI API Key:", apiKey);
 
   const model = new ChatOpenAI({
     temperature: 0.7,
@@ -41,14 +57,21 @@ async function getAgent() {
 }
 
 export async function runAgent(input: string): Promise<string> {
+  let message = { role: 'user', content: input }
+  logger.info(`Agent input: ${JSON.stringify(message)}`);
+  
+  agentState.addMessage(message);
   const agent = await getAgent();
   const result = await agent.invoke({
-    messages: [{
-      role: "user",
-      content: input
-    }]
+    messages: agentState.getMessages()
   });
+
   // Extract the assistant's reply from the result object
   const lastMessage = result.messages[result.messages.length - 1];
-  return typeof lastMessage.content === "string" ? lastMessage.content : JSON.stringify(lastMessage.content);
+  const reply = typeof lastMessage.content === "string" ? lastMessage.content : JSON.stringify(lastMessage.content);
+  agentState.addMessage({ role: 'assistant', content: reply });
+  logger.info(`Agent result: ${JSON.stringify(result)}`);
+  return reply;
 }
+
+export { agentState };
