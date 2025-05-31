@@ -50,13 +50,13 @@
       {#each messages as message}
         {#if message.role === 'user'}
           <div class="flex justify-end">
-            <div class="max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-base whitespace-pre-line bg-blue-500 text-white rounded-br-none">
+            <div class="max-w-[75%] px-4 py-2 rounded-lg shadow text-base whitespace-pre-line bg-gray-200 text-gray-900 border border-gray-300">
               {message.content}
             </div>
           </div>
         {:else}
           <div class="flex justify-start">
-            <div class="max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-base bg-yellow-50 text-gray-900 border-l-4 border-yellow-400">
+            <div class="max-w-[75%] px-0 py-0 text-base text-gray-900">
               <div class="prose prose-sm prose-blue break-words" use:markdown={message.content}></div>
             </div>
           </div>
@@ -64,7 +64,7 @@
       {/each}
       {#if loading && streamingContent}
         <div class="flex justify-start">
-          <div class="max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-base bg-yellow-50 text-gray-900 border-l-4 border-yellow-400">
+          <div class="max-w-[75%] px-0 py-0 text-base text-gray-900">
             <div class="prose prose-sm prose-blue break-words" use:markdown={streamingContent}></div>
           </div>
         </div>
