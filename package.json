@@ -50,6 +50,9 @@
 		"vitest": "^3.0.0"
 	},
 	"dependencies": {
-		"@langchain/openai": "^0.5.11"
+		"@langchain/openai": "^0.5.11",
+		"@tauri-apps/api": "^2.5.0",
+		"@tauri-apps/plugin-fs": "^2.3.0",
+		"@tauri-apps/plugin-log": "^2.4.0"
 	}
 }

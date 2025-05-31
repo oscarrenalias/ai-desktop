@@ -6,6 +6,16 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "log:default",
+    { 
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        { "path": "$APPCONFIG" }, 
+        { "path": "$APPCONFIG/**" },
+        { "path": "./**" }
+
+      ]
+    }
   ]
 }
