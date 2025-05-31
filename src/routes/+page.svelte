@@ -1,6 +1,8 @@
 <script lang="ts">
   import { runAgent, runAgentStream } from '$lib/agent/agent';
   import { marked } from 'marked';
+  import { ToolbarButton, Toolbar } from 'flowbite-svelte';
+  import { CogOutline } from 'flowbite-svelte-icons';
 
   let input = '';
   let messages: { role: 'user' | 'assistant'; content: string }[] = [];
@@ -38,12 +40,22 @@
 
 <div class="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 flex items-center justify-center">
   <div class="w-full h-screen max-w-7xl bg-white rounded-b-2xl shadow-2xl flex flex-col">
-    <header class="px-6 py-4 border-b flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-blue-600 tracking-tight">AI Desktop Chat</h1>
+    <header class="px-0 py-0 border-b flex items-center justify-between">
+      <Toolbar class="w-full rounded-none border-none shadow-none bg-transparent">
+        <div class="flex-1 pl-6">
+          <h1 class="text-2xl font-bold text-blue-600 tracking-tight">AI Desktop Chat</h1>
+        </div>
+        <div class="flex items-center pr-6">
+          <ToolbarButton>
+            <CogOutline class="w-6 h-6 text-gray-500" />
+          </ToolbarButton>
+        </div>
+      </Toolbar>
     </header>
     <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-white">
       {#if messages.length === 0}
         <div class="flex flex-col items-center justify-center h-full text-gray-400">
+          <img src="/robot.svg" alt="Robot" class="w-20 h-20 mb-2" />
           <span>Start the conversation!</span>
         </div>
       {/if}
