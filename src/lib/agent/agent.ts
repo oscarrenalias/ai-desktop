@@ -3,7 +3,6 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { tool } from "@langchain/core/tools";
 import { AppConfig } from "$lib/config";
 import { Logger } from "$lib/logger";
-import { McpClient } from "$lib/mcp/mcpclient";
 import { z } from "zod";
 
 let logger = Logger.getLogger("agent");
