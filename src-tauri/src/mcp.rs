@@ -1,3 +1,4 @@
+use log::{ info, error };
 use rmcp::model::CallToolRequestParam;
 use rmcp::{
   model::{CallToolResult, Tool},
@@ -24,6 +25,7 @@ pub async fn connect_server(
   let mut state = state.lock().await;
 
   if state.client.is_some() {
+    error!("Client already connected");
     return Err("Client already connected".to_string());
   }
 
@@ -73,12 +75,13 @@ pub async fn call_tool(
   name: String,
   args: Option<Map<String, Value>>,
 ) -> Result<CallToolResult, String> {
-  println!("Calling tool: {:?}", name);
-  println!("Arguments: {:?}", args);
+  info!("Calling tool: {:?}", name);
+  info!("Arguments: {:?}", args);
 
   let state = state.lock().await;
   let client = state.client.as_ref();
   if client.is_none() {
+    error!("Client not connected");
     return Err("Client not connected".to_string());
   }
 
@@ -91,7 +94,7 @@ pub async fn call_tool(
     .await
     .unwrap();
 
-  println!("Tool result: {:?}", call_tool_result);
+  info!("Tool result: {:?}", call_tool_result);
 
   Ok(call_tool_result) 
 }
