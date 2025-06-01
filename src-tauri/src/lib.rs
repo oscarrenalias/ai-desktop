@@ -11,7 +11,12 @@ use mcp::{
 };
 
 pub fn run() {
+  let mcp_state = Arc::new(Mutex::new(McpState {
+    client: None,
+  }));
+
   tauri::Builder::default()
+    .manage(mcp_state)
     .setup(|app| {
             // data dir
             let path = app.path().data_dir();

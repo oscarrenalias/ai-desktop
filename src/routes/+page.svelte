@@ -6,6 +6,7 @@
   import { AppConfig } from '$lib/config';
   import type { Action } from 'svelte/action';
   import { Logger } from '$lib/logger';
+  import { testMcp } from '$lib/mcp/test-mcp';
 
   let logger = Logger.getLogger('App');
 
@@ -61,6 +62,9 @@
 </script>
 
 <div class="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center">
+  <button onclick={testMcp} class="absolute top-4 right-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full shadow-md transition">
+    Test MCP
+  </button>
   <div class="w-full h-screen max-w-7xl bg-white dark:bg-gray-900 rounded-b-2xl shadow-2xl flex flex-col">
     <header class="px-0 py-0 border-b dark:border-gray-800 flex items-center justify-between">
       <div class="flex-1 pl-6">
