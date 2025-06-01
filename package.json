@@ -51,6 +51,7 @@
 		"vitest": "^3.0.0"
 	},
 	"dependencies": {
+		"@langchain/mcp-adapters": "^0.5.2",
 		"@langchain/openai": "^0.5.11",
 		"@tailwindcss/cli": "^4.1.8",
 		"@tauri-apps/api": "^2.5.0",

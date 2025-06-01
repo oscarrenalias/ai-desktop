@@ -3,21 +3,22 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { tool } from "@langchain/core/tools";
 import { AppConfig } from "$lib/config";
 import { Logger } from "$lib/logger";
+import { McpClient } from "$lib/mcp/mcpclient";
 import { z } from "zod";
 
 let logger = Logger.getLogger("agent");
 
 // test tool that simulates a web search
-const search = tool(async ({ query }) => {
-  if (query.toLowerCase().includes("sf") || query.toLowerCase().includes("san francisco")) {
-    return "It's 60 degrees and foggy."
+const weather_forecast = tool(async ({ query }) => {
+  if (query.toLowerCase().includes("hki") || query.toLowerCase().includes("helsinki")) {
+    return "15 degrees and cloudy"
   }
-  return "It's 90 degrees and sunny."
+  return "20 degrees and sunny"
 }, {
-  name: "search",
-  description: "Call to surf the web.",
+  name: "weather_forecast",
+  description: "Returnst he current weather in the requested city.",
   schema: z.object({
-    query: z.string().describe("The query to use in your search."),
+    query: z.string().describe("The city to get the weather forecast for."),
   }),
 });
 
@@ -42,8 +43,8 @@ async function getAgent(onToken?: (token: string) => void) {
   const apiKey = typeof apiKeyRaw === 'string' ? apiKeyRaw : undefined;
 
   const model = new ChatOpenAI({
-    temperature: 0.7,
-    modelName: 'gpt-4',
+    temperature: 1.0,
+    modelName: 'gpt-4o',
     streaming: true,
     apiKey: apiKey,
     callbacks: onToken
@@ -54,9 +55,23 @@ async function getAgent(onToken?: (token: string) => void) {
         }]
       : [],
   });
+
+  // --- MCP TOOLS INTEGRATION ---
+  let mcpTools: any[] = [];
+  try {
+    const mcpClient = McpClient.getInstance();
+    mcpTools = await mcpClient.getTools();
+    if (mcpTools.length > 0) {
+      await logger.info(`Loaded ${mcpTools.length} MCP tools into agent.`);
+    }
+  } catch (err) {
+    await logger.warn(`MCP tools could not be loaded: ${err}`);
+    mcpTools = [];
+  }
+
   return createReactAgent({
     llm: model,
-    tools: [search],
+    tools: [weather_forecast/*, ...mcpTools*/],
   });
 }
 

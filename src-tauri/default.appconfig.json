@@ -1,3 +1,10 @@
 {
-    "OPENAI_API_KEY": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    "OPENAI_API_KEY": "sk-xxx",
+ 
+     "mcpServers": {
+        "mcp-server-bmi": {
+            "command": "docker",
+            "args": [ "run", "-i", "--rm", "ghcr.io/oscarrenalias/mcp-server-bmi:latest" ]
+        }
+    }
 }
