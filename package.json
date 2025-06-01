@@ -53,6 +53,7 @@
 	"dependencies": {
 		"@langchain/mcp-adapters": "^0.5.2",
 		"@langchain/openai": "^0.5.11",
+		"@proj-airi/tauri-plugin-mcp": "^0.5.0",
 		"@tailwindcss/cli": "^4.1.8",
 		"@tauri-apps/api": "^2.5.0",
 		"@tauri-apps/plugin-fs": "^2.3.0",

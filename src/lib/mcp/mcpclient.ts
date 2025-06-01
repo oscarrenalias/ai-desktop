@@ -1,12 +1,10 @@
 import { Logger } from '$lib/logger';
 import { AppConfig } from '$lib/config';
-import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 
 const log = Logger.getLogger('MCPClient');
 
 export class McpClient {     
   private static instance: McpClient | null = null;
-  private mcpClient: MultiServerMCPClient | null = null;
   private mcpTools: any[] | null = null;
   private initialized = false;
 

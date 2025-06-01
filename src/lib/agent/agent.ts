@@ -55,19 +55,6 @@ async function getAgent(onToken?: (token: string) => void) {
       : [],
   });
 
-  // --- MCP TOOLS INTEGRATION ---
-  let mcpTools: any[] = [];
-  try {
-    const mcpClient = McpClient.getInstance();
-    mcpTools = await mcpClient.getTools();
-    if (mcpTools.length > 0) {
-      await logger.info(`Loaded ${mcpTools.length} MCP tools into agent.`);
-    }
-  } catch (err) {
-    await logger.warn(`MCP tools could not be loaded: ${err}`);
-    mcpTools = [];
-  }
-
   return createReactAgent({
     llm: model,
     tools: [weather_forecast/*, ...mcpTools*/],
