@@ -16,75 +16,80 @@ pub struct McpState {
   pub client: Option<RunningService<RoleClient, ()>>,
 }
 
+// Internal logic for use in both Tauri commands and integration tests
+pub async fn connect_server_internal(
+  state: Arc<Mutex<McpState>>,
+  command: String,
+  args: Vec<String>,
+) -> Result<(), String> {
+  let mut state = state.lock().await;
+  if state.client.is_some() {
+    error!("Client already connected");
+    return Err("Client already connected".to_string());
+  }
+  let child_process = TokioChildProcess::new(Command::new(command).args(args)).unwrap();
+  let service: RunningService<RoleClient, ()> = ().serve(child_process).await.unwrap();
+  state.client = Some(service);
+  Ok(())
+}
+
 #[tauri::command]
 pub async fn connect_server(
   state: tauri::State<'_, Arc<Mutex<McpState>>>,
   command: String,
   args: Vec<String>,
 ) -> Result<(), String> {
+  connect_server_internal(state.inner().clone(), command, args).await
+}
+
+pub async fn disconnect_server_internal(state: Arc<Mutex<McpState>>) -> Result<(), String> {
   let mut state = state.lock().await;
-
-  if state.client.is_some() {
-    error!("Client already connected");
-    return Err("Client already connected".to_string());
+  if state.client.is_none() {
+    return Err("Client not connected".to_string());
   }
-
-  let child_process = TokioChildProcess::new(Command::new(command).args(args)).unwrap();
-
-  let service: RunningService<RoleClient, ()> = ().serve(child_process).await.unwrap();
-
-  state.client = Some(service);
-
+  state.client.take().unwrap().cancel().await.unwrap();
+  state.client = None;
   Ok(())
 }
 
 #[tauri::command]
 pub async fn disconnect_server(state: tauri::State<'_, Arc<Mutex<McpState>>>) -> Result<(), String> {
-  let mut state = state.lock().await;
-  if state.client.is_none() {
-    return Err("Client not connected".to_string());
-  }
-
-  state.client.take().unwrap().cancel().await.unwrap();
-  state.client = None;
-
-  Ok(())
+  disconnect_server_internal(state.inner().clone()).await
 }
 
-#[tauri::command]
-pub async fn list_tools(state: tauri::State<'_, Arc<Mutex<McpState>>>) -> Result<Vec<Tool>, String> {
+pub async fn list_tools_internal(state: Arc<Mutex<McpState>>) -> Result<Vec<Tool>, String> {
   let state = state.lock().await;
   let client = state.client.as_ref();
   if client.is_none() {
     return Err("Client not connected".to_string());
   }
-
   let list_tools_result = client
     .unwrap()
     .list_tools(Default::default())
     .await
     .unwrap();
   let tools = list_tools_result.tools;
-
   Ok(tools)
 }
 
 #[tauri::command]
-pub async fn call_tool(
-  state: tauri::State<'_, Arc<Mutex<McpState>>>,
+pub async fn list_tools(state: tauri::State<'_, Arc<Mutex<McpState>>>) -> Result<Vec<Tool>, String> {
+  list_tools_internal(state.inner().clone()).await
+}
+
+pub async fn call_tool_internal(
+  state: Arc<Mutex<McpState>>,
   name: String,
   args: Option<Map<String, Value>>,
 ) -> Result<CallToolResult, String> {
   info!("Calling tool: {:?}", name);
   info!("Arguments: {:?}", args);
-
   let state = state.lock().await;
   let client = state.client.as_ref();
   if client.is_none() {
     error!("Client not connected");
     return Err("Client not connected".to_string());
   }
-
   let call_tool_result = client
     .unwrap()
     .call_tool(CallToolRequestParam {
@@ -93,8 +98,15 @@ pub async fn call_tool(
     })
     .await
     .unwrap();
-
   info!("Tool result: {:?}", call_tool_result);
+  Ok(call_tool_result)
+}
 
-  Ok(call_tool_result) 
+#[tauri::command]
+pub async fn call_tool(
+  state: tauri::State<'_, Arc<Mutex<McpState>>>,
+  name: String,
+  args: Option<Map<String, Value>>,
+) -> Result<CallToolResult, String> {
+  call_tool_internal(state.inner().clone(), name, args).await
 }

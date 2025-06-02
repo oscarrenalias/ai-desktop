@@ -4,7 +4,7 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 
-mod mcp;
+pub mod mcp;
 
 use mcp::{
   connect_server, disconnect_server, list_tools, call_tool, McpState,
