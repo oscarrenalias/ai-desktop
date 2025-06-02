@@ -12,7 +12,7 @@ use mcp::{
 
 pub fn run() {
   let mcp_state = Arc::new(Mutex::new(McpState {
-    client: None,
+    clients: std::collections::HashMap::new(),
   }));
 
   tauri::Builder::default()

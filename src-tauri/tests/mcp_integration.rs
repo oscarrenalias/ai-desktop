@@ -10,11 +10,12 @@ use serde_json::json;
 #[tokio::test]
 async fn test_successful_end_to_end_docker() {
     // Prepare shared state
-    let state = Arc::new(Mutex::new(McpState { client: None }));
-
+    let state = Arc::new(Mutex::new(McpState { clients: std::collections::HashMap::new() }));
+    let connection_id = "test-conn-1".to_string();
     // Start the MCP server via Docker
     let connect_result = connect_server_internal(
         state.clone(),
+        connection_id.clone(),
         "docker".to_string(),
         vec![
             "run".to_string(),
@@ -26,7 +27,7 @@ async fn test_successful_end_to_end_docker() {
     assert!(connect_result.is_ok(), "connect_server failed: {connect_result:?}");
 
     // List tools
-    let tools_result = list_tools_internal(state.clone()).await;
+    let tools_result = list_tools_internal(state.clone(), connection_id.clone()).await;
     assert!(tools_result.is_ok(), "list_tools failed: {tools_result:?}");
     let tools = tools_result.unwrap();
     assert!(!tools.is_empty(), "No tools found");
@@ -40,6 +41,7 @@ async fn test_successful_end_to_end_docker() {
     ]);
     let call_result = call_tool_internal(
         state.clone(),
+        connection_id.clone(),
         "calculate_bmi".to_string(),
         Some(args),
     ).await;
@@ -55,18 +57,18 @@ async fn test_successful_end_to_end_docker() {
     println!("BMI tool result: {}", value);
 
     // Disconnect
-    let disconnect_result = disconnect_server_internal(state.clone()).await;
+    let disconnect_result = disconnect_server_internal(state.clone(), connection_id.clone()).await;
     assert!(disconnect_result.is_ok(), "disconnect_server failed: {disconnect_result:?}");
 }
 
 #[tokio::test]
-async fn test_wrong_tool_call_docker() {
-    // Prepare shared state
-    let state = Arc::new(Mutex::new(McpState { client: None }));
-
+async fn test_wrong_tool_call() {
+    let state = Arc::new(Mutex::new(McpState { clients: std::collections::HashMap::new() }));
+    let connection_id = "test-conn-2".to_string();
     // Start the MCP server via Docker
     let connect_result = connect_server_internal(
         state.clone(),
+        connection_id.clone(),
         "docker".to_string(),
         vec![
             "run".to_string(),
@@ -84,6 +86,7 @@ async fn test_wrong_tool_call_docker() {
     ]);
     let call_result = call_tool_internal(
         state.clone(),
+        connection_id.clone(),
         "xxx".to_string(),
         Some(args),
     ).await;
@@ -92,10 +95,38 @@ async fn test_wrong_tool_call_docker() {
     assert!(call_result.is_ok(), "Expected ok response, got: {call_result:?}");
     // ...but the result should be an error from the MCP server
     let result = call_result.unwrap();
-    assert_eq!(result.is_error, Some(true), "Expected error, got {:?}", result.is_error);
+    assert_eq!(result.is_error, Some(true), "Expected error response, got: {:?}", result.is_error);
 
     // Disconnect
-    let disconnect_result = disconnect_server_internal(state.clone()).await;
+    let disconnect_result = disconnect_server_internal(state.clone(), connection_id.clone()).await;
+    assert!(disconnect_result.is_ok(), "disconnect_server failed: {disconnect_result:?}");
+}
+
+#[tokio::test]
+async fn test_list_tools_with_wrong_id() {
+    let state = Arc::new(Mutex::new(McpState { clients: std::collections::HashMap::new() }));
+    let connection_id = "test-conn-3".to_string();
+    let wrong_id = "test-conn-4".to_string();
+    // Start the MCP server via Docker
+    let connect_result = connect_server_internal(
+        state.clone(),
+        connection_id.clone(),
+        "docker".to_string(),
+        vec![
+            "run".to_string(),
+            "-i".to_string(),
+            "--rm".to_string(),
+            "ghcr.io/oscarrenalias/mcp-server-bmi:latest".to_string(),
+        ],
+    ).await;
+    assert!(connect_result.is_ok(), "connect_server failed: {connect_result:?}");
+
+    // Try to list tools with the wrong connection id
+    let tools_result = list_tools_internal(state.clone(), wrong_id.clone()).await;
+    assert!(tools_result.is_err(), "Expected error for wrong connection id, got: {tools_result:?}");
+
+    // Disconnect the valid connection
+    let disconnect_result = disconnect_server_internal(state.clone(), connection_id.clone()).await;
     assert!(disconnect_result.is_ok(), "disconnect_server failed: {disconnect_result:?}");
 }
 
