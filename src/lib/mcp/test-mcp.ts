@@ -1,3 +1,4 @@
+import { AppConfig } from '$lib/config';
 import { McpServerClient } from './mcpserverclient';
 
 export async function testMcp() {
@@ -36,5 +37,34 @@ export async function testMcp() {
 
   } catch (err) {
     console.error('Error:', err);
+  }
+}
+
+export async function mcpDiscoverTools() {
+  const config = await AppConfig.getInstance();
+  const mcpServers: any = await config.get("mcpServers");
+
+  if (!mcpServers || typeof mcpServers !== 'object') {
+    console.error('mcpServers is not an object:', mcpServers);
+    return;
+  }
+
+  // discover tools for each MCP server
+  for (const [connectionId, server] of Object.entries(mcpServers)) {
+    const mcp = new McpServerClient(connectionId);
+    try {
+      await mcp.connect(server.command, server.args);
+      console.log(`Connected to MCP server: ${connectionId}`);
+
+      // List available tools
+      const tools = await mcp.listTools();
+      console.log(`Available tools for ${connectionId}:`, tools);
+
+      // Disconnect the MCP server
+      await mcp.disconnect();
+      console.log(`Disconnected from MCP server: ${connectionId}`);
+    } catch (err) {
+      console.error(`Error with MCP server ${connectionId}:`, err);
+    }
   }
 }
